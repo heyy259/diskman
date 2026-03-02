@@ -8,8 +8,6 @@ requires-python = ">=3.10"
 authors = [
     {name = "heyy259", email = "heyy259@gmail.com"}
 ]
-    {name = "Your Name", email = "your.email@example.com"}
-]
 keywords = ["disk", "space", "analysis", "cleanup", "mcp", "ai"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -56,14 +54,11 @@ diskman = "diskman.cli:main"
 diskman-mcp = "diskman.mcp.server:run"
 diskman-api = "diskman.api.server:run_server"
 
+[project.urls]
 Homepage = "https://github.com/heyy259/diskman"
 Documentation = "https://github.com/heyy259/diskman#readme"
 Repository = "https://github.com/heyy259/diskman"
 Issues = "https://github.com/heyy259/diskman/issues"
-Homepage = "https://github.com/yourusername/diskman"
-Documentation = "https://github.com/yourusername/diskman#readme"
-Repository = "https://github.com/yourusername/diskman"
-Issues = "https://github.com/yourusername/diskman/issues"
 
 [build-system]
 requires = ["hatchling"]
