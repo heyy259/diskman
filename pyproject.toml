@@ -1,6 +1,6 @@
 [project]
 name = "diskman"
-version = "0.2.0"
+version = "0.3.0"
 description = "AI-ready disk space analysis and management"
 readme = "README.md"
 license = {text = "MIT"}
@@ -32,16 +32,11 @@ dependencies = [
 mcp = [
     "fastmcp>=2.0.0",
 ]
-api = [
-    "fastapi>=0.115.0",
-    "uvicorn>=0.32.0",
-    "httpx>=0.27.0",
-]
 ai = [
     "httpx>=0.27.0",
 ]
 all = [
-    "diskman[mcp,api,ai]",
+    "diskman[mcp,ai]",
 ]
 dev = [
     "ruff>=0.8.0",
@@ -52,7 +47,6 @@ dev = [
 [project.scripts]
 diskman = "diskman.cli:main"
 diskman-mcp = "diskman.mcp.server:run"
-diskman-api = "diskman.api.server:run_server"
 
 [project.urls]
 Homepage = "https://github.com/heyy259/diskman"

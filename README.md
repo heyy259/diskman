@@ -4,12 +4,13 @@ AI-ready disk space analysis and management.
 
 ## Features
 
-- 🔍 **Smart Scan** - Analyze directory sizes with file type detection
-- 🧠 **Intelligent Analysis** - Rule-based recommendations for cleanup/migration
+- 🔍 **Smart Scan** - Analyze directory sizes with link type detection
+- 🧠 **Intelligent Analysis** - Rule-based + AI-powered recommendations
 - 🔄 **Safe Migration** - Move directories using symbolic links
 - 🧹 **Smart Clean** - Safe cleanup with risk evaluation
-- 🤖 **AI-Ready** - MCP integration for AI agent automation
-- 🔌 **Modular Design** - Use operations, analysis, or AI separately
+- 🤖 **AI-Ready** - Built-in AI analysis (OpenAI/DeepSeek/Qwen compatible)
+- 🔌 **MCP Integration** - AI agent automation via MCP protocol
+- 🔒 **Accurate Statistics** - Correctly handles symlinks/junctions to avoid double-counting
 
 ## Install
 
@@ -19,6 +20,9 @@ pip install diskman
 
 # With MCP support (for AI agents)
 pip install "diskman[mcp]"
+
+# With AI support (for AI-powered analysis)
+pip install "diskman[ai]"
 
 # With everything
 pip install "diskman[all]"
@@ -43,6 +47,9 @@ diskman migrate ~/.conda /data/.conda
 
 # Clean directory (dry run by default)
 diskman clean ~/temp
+
+# Check link status
+diskman link ~/.cache
 ```
 
 ### Python API
@@ -70,6 +77,38 @@ migrator = DirectoryMigrator()
 result = migrator.migrate("~/.conda", "/data/.conda")
 ```
 
+### AI-Powered Analysis
+
+```python
+import asyncio
+from diskman import DirectoryScanner, AIService, AIConfig
+
+async def analyze_with_ai():
+    # Configure AI (supports OpenAI-compatible APIs)
+    ai = AIService(AIConfig(
+        api_key="your-api-key",
+        base_url="https://api.deepseek.com",  # or OpenAI, Qwen, etc.
+        model="deepseek-chat",
+    ))
+    
+    # Scan
+    scanner = DirectoryScanner()
+    result = scanner.scan_user_profile()
+    
+    # AI Analysis
+    ai_result = await ai.analyze(
+        directories=result.directories[:30],
+        user_context="I'm a Python developer",
+        target_drive="D:\\",
+    )
+    
+    print(ai_result["summary"])
+    for rec in ai_result["recommendations"]:
+        print(f"{rec['path']}: {rec['action']} - {rec['reason']}")
+
+asyncio.run(analyze_with_ai())
+```
+
 ### MCP Integration (for AI Agents)
 
 Add to your MCP client configuration:
@@ -78,78 +117,112 @@ Add to your MCP client configuration:
 {
   "mcpServers": {
     "diskman": {
-      "command": "diskman-mcp"
-    }
-  }
-}
-```
-
-Or with custom API endpoint:
-
-```json
-{
-  "mcpServers": {
-    "diskman": {
       "command": "diskman-mcp",
       "env": {
-        "DISKMAN_API_URL": "https://your-api.example.com",
-        "DISKMAN_API_KEY": "your-key"
+        "AI_API_KEY": "your-api-key",
+        "AI_BASE_URL": "https://api.deepseek.com",
+        "AI_MODEL": "deepseek-chat"
       }
     }
   }
 }
 ```
 
+**Available MCP Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `scan_directory` | Scan a single directory |
+| `scan_user_profile` | Scan user profile for large directories |
+| `check_link_status` | Check if path is symlink/junction/normal |
+| `analyze_directory` | Analyze with rule-based recommendations |
+| `analyze_directories` | Batch analysis with smart mode switching (AI ↔ Rules) |
+| `migrate_directory` | Migrate directory with symbolic link |
+| `clean_directory` | Clean directory contents |
+| `get_ai_provider_info` | Check AI provider status |
+
 ## Architecture
 
 ```
 diskman/
-├── operations/       # File system operations (scan, migrate, clean)
-│   ├── scanner.py
-│   ├── migrator.py
-│   └── cleaner.py
+├── operations/       # File system operations
+│   ├── scanner.py   # Directory scanning with link detection
+│   ├── migrator.py  # Migration with symbolic links
+│   └── cleaner.py   # Safe cleanup
 │
-├── analysis/         # Directory analysis and recommendations
-│   ├── analyzer.py
-│   └── rules/        # Built-in analysis rules
+├── analysis/         # Directory analysis
+│   ├── analyzer.py  # Rule-based recommendations
+│   └── rules/       # Built-in analysis rules
 │
-├── ai/              # AI-powered analysis (optional)
-│   ├── service.py
-│   └── providers/   # DeepSeek, OpenAI, etc.
+├── ai/              # AI-powered analysis
+│   ├── service.py   # AI service wrapper
+│   └── providers/   # OpenAI-compatible providers
 │
-├── api/             # HTTP API (optional)
-├── mcp/             # MCP server (for AI agents)
+├── mcp/             # MCP server for AI agents
 └── cli.py           # Command-line interface
 ```
 
-## Two Core Modules
+## Smart Analysis Mode
 
-### Operations Core (Execution Layer)
+`analyze_directories` automatically chooses the best analysis method:
 
-Handles file system operations safely:
+| Condition | Analysis Mode |
+|-----------|---------------|
+| AI configured + available | AI-powered analysis |
+| No AI config / AI unavailable | Rule-based analysis |
+| AI analysis fails | Falls back to rules |
 
-- **Scanner**: Calculate directory sizes, detect link types
-- **Migrator**: Move directories and create symbolic links
-- **Cleaner**: Safe deletion with protection for critical paths
+This ensures the tool always works, with or without AI configuration.
 
-### Analysis Core (Decision Layer)
+## Two Analysis Modes
 
-Provides intelligent recommendations:
+### Rule-Based Analysis (Default)
 
-- **Rule Engine**: 40+ built-in rules for common directories
-- **Heuristics**: Pattern-based analysis for unknown directories
-- **Risk Assessment**: Safe/low/medium/high/critical ratings
-- **Action Recommendations**: can_delete, can_move, keep, review
+- 40+ built-in rules for common directories
+- Pattern-based heuristics for unknown directories
+- Risk assessment: safe/low/medium/high/critical
+- Action recommendations: can_delete, can_move, keep, review
 
-## Environment Variables
+### AI-Powered Analysis
+
+- Context-aware recommendations
+- Natural language explanations
+- Supports any OpenAI-compatible API:
+  - OpenAI (gpt-4o-mini, gpt-4o)
+  - DeepSeek (deepseek-chat)
+  - Qwen (qwen-turbo, qwen-plus)
+  - Local models (Ollama, vLLM)
+
+## Configuration
+
+### Parameter Passing (Recommended)
+
+```python
+from diskman import AIService, AIConfig
+from diskman.mcp import create_mcp_server
+
+# Python API
+ai = AIService(AIConfig(
+    api_key="your-api-key",
+    base_url="https://api.deepseek.com",
+    model="deepseek-chat",
+))
+
+# MCP Server
+mcp = create_mcp_server(AIConfig(
+    api_key="your-api-key",
+    base_url="https://api.deepseek.com",
+    model="deepseek-chat",
+))
+```
+
+### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `DISKMAN_API_URL` | API server URL (for MCP client) |
-| `DISKMAN_API_KEY` | API key (optional) |
-| `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `OPENAI_API_KEY` | OpenAI API key |
-| `AI_DEFAULT_PROVIDER` | Default AI provider (deepseek/openai) |
+| `AI_API_KEY` or `OPENAI_API_KEY` | AI provider API key |
+| `AI_BASE_URL` or `OPENAI_BASE_URL` | API base URL |
+| `AI_MODEL` or `OPENAI_MODEL` | Model name (default: gpt-4o-mini) |
 
 ## Examples
 
@@ -198,6 +271,22 @@ result = migrator.migrate(
 
 if result.success:
     print(f"Done! Created {result.link_type}")
+```
+
+## Accurate Space Statistics
+
+Diskman correctly handles symbolic links and junctions:
+
+- **Symlinks/Junctions**: Report 0 size by default (data is on target drive)
+- **Normal directories**: Report actual size
+- **`count_link_target=True`**: Include symlink target size if needed
+
+```python
+# Default: symlinks show 0 size (accurate C: drive usage)
+info = scanner.scan_directory("C:\\Users\\you\\LinkedFolder")
+
+# Include target size for total data analysis
+info = scanner.scan_directory("C:\\Users\\you\\LinkedFolder", count_link_target=True)
 ```
 
 ## License

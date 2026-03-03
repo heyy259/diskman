@@ -1,12 +1,9 @@
 """Tests for directory cleaner."""
 
-import os
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from diskman.operations.cleaner import DirectoryCleaner
-from diskman.models import CleanResult
 
 
 class TestDirectoryCleaner:
@@ -44,7 +41,7 @@ class TestDirectoryCleaner:
         with tempfile.TemporaryDirectory() as tmpdir:
             (Path(tmpdir) / "test.txt").write_text("test")
             (Path(tmpdir) / "subdir").mkdir()
-            
+
             result = cleaner.clean(tmpdir, dry_run=True)
             assert result.success is True
             assert result.dry_run is True
@@ -55,7 +52,7 @@ class TestDirectoryCleaner:
         """Test cleaning protected path."""
         cleaner = DirectoryCleaner()
         home = str(Path.home())
-        
+
         result = cleaner.clean(home)
         assert result.success is False
         assert "protected" in result.error.lower()
@@ -66,7 +63,7 @@ class TestDirectoryCleaner:
         with tempfile.TemporaryDirectory() as tmpdir:
             (Path(tmpdir) / "file1.txt").write_text("test")
             (Path(tmpdir) / "file2.log").write_text("test")
-            
+
             result = cleaner.clean_contents(tmpdir, patterns=["*.log"], dry_run=True)
             assert result.success is True
             assert result.dry_run is True
@@ -82,7 +79,7 @@ class TestDirectoryCleaner:
             test_dir = Path(tmpdir) / "to_clean"
             test_dir.mkdir()
             (test_dir / "file.txt").write_text("test")
-            
+
             # Clean it (not dry run)
             result = cleaner.clean(str(test_dir), dry_run=False)
             assert result.success is True
@@ -95,7 +92,7 @@ class TestDirectoryCleaner:
             subdir = Path(tmpdir) / "subdir"
             subdir.mkdir()
             (subdir / "file.txt").write_text("test")
-            
+
             result = cleaner.clean(tmpdir, dry_run=False, keep_root=True)
             assert result.success is True
             # Root should still exist but be empty
@@ -108,10 +105,8 @@ class TestDirectoryCleaner:
         with tempfile.TemporaryDirectory() as tmpdir:
             (Path(tmpdir) / "keep.txt").write_text("keep")
             (Path(tmpdir) / "delete.log").write_text("delete")
-            
-            result = cleaner.clean_contents(
-                tmpdir, patterns=["*.log"], dry_run=False
-            )
+
+            result = cleaner.clean_contents(tmpdir, patterns=["*.log"], dry_run=False)
             assert result.success is True
             assert (Path(tmpdir) / "keep.txt").exists()
             assert not (Path(tmpdir) / "delete.log").exists()

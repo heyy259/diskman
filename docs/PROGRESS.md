@@ -1,4 +1,4 @@
-# Disk Space Manager - 开发日志
+# Diskman - 开发日志
 
 > 记录产品设计讨论和开发进度
 
@@ -59,72 +59,25 @@ CLI → MCP → Desktop → Web → SDK
 - 建议展示模块
 - 执行模块
 
-**商业模式决策**：
-
-| 问题 | 决策 |
-|------|------|
-| AI 模型选择 | 不固定，根据更新速度选择最新模型 |
-| API Key 提供 | 服务端代理，用户无需配置 |
-
 ---
 
 ### 阶段四：技术实现
 
-**架构设计**：
+**架构设计**（简化版）：
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  MCP Client │────▶│  API Server │────▶│  AI Models  │
-│  (Local)    │     │  (Remote)   │     │  (DeepSeek/ │
-│             │     │             │     │   OpenAI)   │
-└─────────────┘     └─────────────┘     └─────────────┘
-      │
-      ▼ Local operations
-┌─────────────┐
-│   Scanner   │
-│   Executor  │
-└─────────────┘
-```
-
-**实现内容**：
-
-| 模块 | 文件 | 功能 |
-|------|------|------|
-| Core | `core/scanner.py` | 本地扫描、迁移、链接检测 |
-| Client | `client/http_client.py` | HTTP 客户端 SDK |
-| Server | `server/api.py` | FastAPI 服务端 |
-| AI Service | `server/ai_service.py` | AI 编排服务 |
-| Providers | `server/providers/` | DeepSeek、OpenAI 实现 |
-| MCP | `mcp_server.py` | MCP 集成 |
-
-**关键代码**：
-
-```python
-# AI Provider 抽象
-class AIProvider(ABC):
-    async def analyze_scan(
-        self,
-        directories: list[dict],
-        user_context: str | None,
-        target_drive: str | None,
-    ) -> ScanAnalysisResult: ...
-
-# 服务端 API
-@app.post("/analyze")
-async def analyze_scan(request: AnalyzeRequest):
-    result = await ai_service.analyze(...)
-    return result
-
-# MCP Tool
-@mcp.tool()
-async def analyze_with_ai(
-    base_path: str | None = None,
-    user_context: str | None = None,
-    target_drive: str | None = None,
-) -> dict:
-    # 1. 本地扫描
-    # 2. 调用 API 分析
-    # 3. 返回结果
+┌─────────────────────────────────────────────────────────┐
+│                    MCP Server / Python API              │
+│                                                         │
+│   analyze_directories() ──→ AIService ──→ AI Provider   │
+│                                    │                    │
+│                                    ├─→ OpenAI           │
+│                                    ├─→ DeepSeek         │
+│                                    ├─→ Qwen             │
+│                                    └─→ Ollama (本地)    │
+│                                                         │
+│   配置：参数传入 或 环境变量 AI_API_KEY / AI_BASE_URL   │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -134,26 +87,23 @@ async def analyze_with_ai(
 ### 已完成 ✅
 
 - [x] 项目结构重构
-- [x] Core 模块（本地扫描/执行）
+- [x] Operations 模块（本地扫描/迁移/清理）
+- [x] Analysis 模块（规则引擎 + 启发式分析）
 - [x] AI Provider 抽象层
-- [x] DeepSeek Provider 实现
 - [x] OpenAI Provider 实现
-- [x] 服务端 API（FastAPI）
-- [x] 客户端 SDK
-- [x] MCP Server 集成
-- [x] SKILL.md 更新
+- [x] MCP Server 集成（直接调用 AI，无需 API Server）
+- [x] CLI 命令
+- [x] 数据模型（models.py）
 - [x] README 更新
 - [x] PRD 文档
 - [x] 安装测试通过
+- [x] 单元测试
+- [x] AI 配置参数传入支持
+- [x] 智能分析模式自动切换
 
 ### 待完成 📋
 
-- [ ] 部署 API 服务到云服务器
-- [ ] 配置域名 + HTTPS
-- [ ] 添加用户认证
-- [ ] 添加计费系统
 - [ ] 前端界面（Desktop/Web）
-- [ ] 单元测试
 - [ ] 文档完善
 
 ---
@@ -163,41 +113,80 @@ async def analyze_with_ai(
 ### 1. 安装
 
 ```bash
-cd C:\Users\云杨\OneDrive\programing\MAX\trash
 pip install -e .
+
+# 或从 PyPI 安装
+pip install diskman
+
+# 安装可选依赖
+pip install "diskman[mcp]"   # MCP 支持
+pip install "diskman[ai]"    # AI 支持
+pip install "diskman[all]"   # 全部
 ```
 
-### 2. 启动 API 服务
+### 2. CLI 使用
 
 ```bash
-# 设置 AI Key
-export DEEPSEEK_API_KEY=your-deepseek-key
+# 扫描目录
+diskman scan ~/project
 
-# 启动服务
-python -m disk_manager.server.api
+# 扫描用户配置文件目录
+diskman profile
+
+# 分析目录
+diskman analyze ~/.cache
+
+# 迁移目录
+diskman migrate ~/.conda /data/.conda
+
+# 清理目录
+diskman clean ~/temp
+
+# 检查链接状态
+diskman link ~/.cache
 ```
 
-服务运行在 `http://localhost:8765`
+### 3. Python API 使用
 
-### 3. 启动 MCP 服务
+```python
+from diskman import DirectoryScanner, DirectoryAnalyzer, AIService, AIConfig
+
+# 扫描
+scanner = DirectoryScanner()
+result = scanner.scan_user_profile()
+
+# 规则分析
+analyzer = DirectoryAnalyzer()
+analysis = analyzer.analyze(result.directories[0])
+
+# AI 分析（可选）
+ai = AIService(AIConfig(
+    api_key="your-api-key",
+    base_url="https://api.deepseek.com",
+    model="deepseek-chat",
+))
+```
+
+### 4. MCP 集成
 
 ```bash
-export DISK_MANAGER_API_URL=http://localhost:8765
-python -m disk_manager.mcp_server
+# 启动 MCP 服务（使用环境变量配置）
+export AI_API_KEY=your-api-key
+export AI_BASE_URL=https://api.deepseek.com
+diskman-mcp
 ```
 
-### 4. OpenCode 集成
-
-在 `opencode.json` 中添加：
+在 MCP 客户端配置：
 
 ```json
 {
   "mcpServers": {
-    "disk-space-manager": {
-      "command": "python",
-      "args": ["-m", "disk_manager.mcp_server"],
+    "diskman": {
+      "command": "diskman-mcp",
       "env": {
-        "DISK_MANAGER_API_URL": "http://localhost:8765"
+        "AI_API_KEY": "your-api-key",
+        "AI_BASE_URL": "https://api.deepseek.com",
+        "AI_MODEL": "deepseek-chat"
       }
     }
   }
@@ -209,44 +198,101 @@ python -m disk_manager.mcp_server
 ## 文件结构
 
 ```
-C:\Users\云杨\OneDrive\programing\MAX\trash\
-├── pyproject.toml              # 项目配置
-├── README.md                   # 使用文档
-├── SKILL.md                    # OpenCode Skill
-├── docs/
-│   └── PRD.md                  # 产品需求文档
-└── disk_manager/
+diskman/
+├── __init__.py              # 包入口，导出主要类
+├── models.py                # 数据模型（DirectoryInfo, AnalysisResult 等）
+├── cli.py                   # CLI 命令入口
+│
+├── operations/              # 文件系统操作
+│   ├── __init__.py
+│   ├── scanner.py           # 目录扫描
+│   ├── migrator.py          # 目录迁移
+│   └── cleaner.py           # 目录清理
+│
+├── analysis/                # 智能分析
+│   ├── __init__.py
+│   ├── analyzer.py          # 分析器
+│   └── rules/               # 规则引擎
+│       ├── __init__.py
+│       ├── engine.py        # 规则引擎核心
+│       └── builtin.py       # 内置规则（40+ 条）
+│
+├── ai/                      # AI 分析（可选）
+│   ├── __init__.py
+│   ├── service.py           # AI 服务编排
+│   └── providers/           # AI 提供商
+│       ├── __init__.py
+│       ├── base.py          # 抽象基类
+│       └── openai.py        # OpenAI 兼容实现
+│
+└── mcp/                     # MCP 服务（可选）
     ├── __init__.py
-    ├── mcp_server.py           # MCP 服务
-    ├── core/
-    │   ├── __init__.py
-    │   └── scanner.py          # 本地扫描/执行
-    ├── client/
-    │   ├── __init__.py
-    │   └── http_client.py      # HTTP 客户端
-    └── server/
-        ├── __init__.py
-        ├── api.py              # FastAPI 端点
-        ├── ai_service.py       # AI 编排
-        └── providers/
-            ├── __init__.py
-            ├── base.py         # AI 抽象接口
-            ├── deepseek.py     # DeepSeek 实现
-            └── openai.py       # OpenAI 实现
+    └── server.py            # MCP Server
+```
+
+---
+
+## 核心模块
+
+### Operations Core（执行层）
+
+安全的文件系统操作：
+
+| 类 | 功能 |
+|---|------|
+| `DirectoryScanner` | 计算目录大小、检测链接类型 |
+| `DirectoryMigrator` | 移动目录并创建符号链接 |
+| `DirectoryCleaner` | 安全删除（带保护机制） |
+
+### Analysis Core（决策层）
+
+智能推荐系统：
+
+| 组件 | 功能 |
+|------|------|
+| `DirectoryAnalyzer` | 分析目录并给出建议 |
+| `RuleEngine` | 40+ 内置规则 |
+| 启发式分析 | 处理未知目录类型 |
+
+**输出**：
+- 目录类型（cache/dependency/build/temp/...）
+- 风险等级（safe/low/medium/high/critical）
+- 推荐操作（can_delete/can_move/keep/review）
+- 置信度（0.0-1.0）
+
+### AI Module（可选增强）
+
+当规则不足以判断时，使用 AI 增强：
+
+- 支持 OpenAI 兼容 API（OpenAI、DeepSeek、Qwen、Ollama 等）
+- 自动切换分析模式：有 AI 配置用 AI，无配置用规则
+- 配置方式：参数传入 或 环境变量
+
+---
+
+## 测试
+
+```bash
+# 运行所有测试
+pytest tests/
+
+# 运行特定测试
+pytest tests/test_scanner.py -v
+pytest tests/test_analyzer.py -v
 ```
 
 ---
 
 ## 下一步计划
 
-1. **短期**：部署 API 服务，完成端到端测试
-2. **中期**：添加认证和计费，推出 SaaS 版本
-3. **长期**：开发 Desktop 客户端，扩大用户群
+1. **短期**：完善文档，提升用户体验
+2. **中期**：开发 Desktop 客户端
+3. **长期**：推出 Web 版本，扩大用户群
 
 ---
 
 ## 备注
 
-- AI 模型选择策略：不固定一家，根据模型更新速度和效果动态选择
-- API Key 由服务端管理，用户无需配置
-- 支持本地模式（不调用 AI）和 AI 模式
+- AI 模型选择策略：支持任意 OpenAI 兼容 API，用户可自由选择
+- AI 配置：支持参数传入（推荐）或环境变量
+- 本地优先：无 AI 配置时自动使用规则引擎分析

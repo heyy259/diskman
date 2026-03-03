@@ -1,17 +1,13 @@
 """Tests for data models."""
 
-import pytest
 from diskman.models import (
-    DirectoryInfo,
-    ScanResult,
-    AnalysisResult,
-    MigrationResult,
-    CleanResult,
-    LinkType,
-    DirectoryType,
-    RiskLevel,
-    RecommendedAction,
     AnalysisContext,
+    AnalysisResult,
+    DirectoryInfo,
+    DirectoryType,
+    LinkType,
+    RecommendedAction,
+    RiskLevel,
 )
 
 

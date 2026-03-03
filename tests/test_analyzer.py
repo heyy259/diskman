@@ -1,17 +1,14 @@
 """Tests for directory analyzer."""
 
-import pytest
-from pathlib import Path
-import tempfile
 
 from diskman.analysis.analyzer import DirectoryAnalyzer
 from diskman.models import (
+    AnalysisContext,
     DirectoryInfo,
     DirectoryType,
-    RiskLevel,
-    RecommendedAction,
     LinkType,
-    AnalysisContext,
+    RecommendedAction,
+    RiskLevel,
 )
 
 
@@ -26,7 +23,7 @@ class TestDirectoryAnalyzer:
             size_bytes=1024 * 1024,
             link_type=LinkType.NORMAL,
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.CACHE
         assert result.risk_level == RiskLevel.LOW
@@ -41,7 +38,7 @@ class TestDirectoryAnalyzer:
             link_type=LinkType.SYMBOLIC_LINK,
             link_target="/new/location",
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.MIGRATED
         assert result.risk_level == RiskLevel.SAFE
@@ -58,7 +55,7 @@ class TestDirectoryAnalyzer:
             link_type=LinkType.JUNCTION,
             link_target="D:\\data",
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.MIGRATED
         assert result.risk_level == RiskLevel.SAFE
@@ -71,7 +68,7 @@ class TestDirectoryAnalyzer:
             size_bytes=1024 * 1024,
             link_type=LinkType.NORMAL,
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.LOG
         assert result.risk_level == RiskLevel.LOW
@@ -85,7 +82,7 @@ class TestDirectoryAnalyzer:
             size_bytes=1024 * 1024,
             link_type=LinkType.NORMAL,
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.CONFIG
         assert result.risk_level == RiskLevel.HIGH
@@ -99,7 +96,7 @@ class TestDirectoryAnalyzer:
             size_bytes=1024 * 1024,
             link_type=LinkType.NORMAL,
         )
-        
+
         result = analyzer.analyze(info)
         assert result.directory_type == DirectoryType.BUILD
         assert result.risk_level == RiskLevel.LOW
@@ -112,7 +109,7 @@ class TestDirectoryAnalyzer:
             DirectoryInfo(path="/test/cache", size_bytes=1024, link_type=LinkType.NORMAL),
             DirectoryInfo(path="/test/logs", size_bytes=1024, link_type=LinkType.NORMAL),
         ]
-        
+
         results = analyzer.analyze_batch(dirs)
         assert len(results) == 2
         assert results[0].directory_type == DirectoryType.CACHE
@@ -127,7 +124,7 @@ class TestDirectoryAnalyzer:
             link_type=LinkType.NORMAL,
         )
         context = AnalysisContext(intent="cleanup")
-        
+
         result = analyzer.analyze(info, context)
         assert result.recommended_action == RecommendedAction.CAN_DELETE
 
@@ -141,7 +138,7 @@ class TestDirectoryAnalyzer:
             link_type=LinkType.NORMAL,
         )
         context = AnalysisContext(intent="migrate", target_drive="D:\\")
-        
+
         result = analyzer.analyze(info, context)
         assert result.recommended_action == RecommendedAction.CAN_MOVE
 
@@ -153,7 +150,7 @@ class TestDirectoryAnalyzer:
             size_bytes=1024 * 1024,
             link_type=LinkType.NORMAL,
         )
-        
+
         result = analyzer.analyze(info)
         # Unknown should require review
         assert result.recommended_action in [RecommendedAction.REVIEW, RecommendedAction.KEEP]

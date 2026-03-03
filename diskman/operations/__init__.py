@@ -1,8 +1,8 @@
 """Operations module - file system operations (scan, migrate, clean)."""
 
-from .scanner import DirectoryScanner
-from .migrator import DirectoryMigrator
 from .cleaner import DirectoryCleaner
+from .migrator import DirectoryMigrator
+from .scanner import DirectoryScanner
 
 __all__ = [
     "DirectoryScanner",

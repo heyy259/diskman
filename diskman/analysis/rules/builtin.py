@@ -1,7 +1,7 @@
 """Built-in rules for directory analysis."""
 
+from ...models import DirectoryType, RecommendedAction, RiskLevel
 from .engine import Rule
-from ...models import DirectoryType, RiskLevel, RecommendedAction
 
 # Cache directories - safe to delete
 CACHE_RULES = [
@@ -352,12 +352,12 @@ CLOUD_RULES = [
 
 # All built-in rules in priority order
 BUILTIN_RULES: list[Rule] = (
-    SYSTEM_RULES +        # Check system first (highest risk)
-    USER_DATA_RULES +     # Then user data
-    CLOUD_RULES +         # Cloud/IM data
-    DEPENDENCY_RULES +    # Dependencies (can delete/move)
-    BUILD_RULES +         # Build outputs
-    CACHE_RULES +         # Caches
-    TEMP_RULES +          # Temp files
-    LOG_RULES             # Logs
+    SYSTEM_RULES  # Check system first (highest risk)
+    + USER_DATA_RULES  # Then user data
+    + CLOUD_RULES  # Cloud/IM data
+    + DEPENDENCY_RULES  # Dependencies (can delete/move)
+    + BUILD_RULES  # Build outputs
+    + CACHE_RULES  # Caches
+    + TEMP_RULES  # Temp files
+    + LOG_RULES  # Logs
 )
