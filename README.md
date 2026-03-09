@@ -1,6 +1,12 @@
 # Diskman
 
-AI-ready disk space analysis and management.
+<p align="center">
+  <img src="Diskman.png" alt="Diskman Logo" width="200">
+</p>
+
+<p align="center">
+  <strong>AI-ready disk space analysis and management</strong>
+</p>
 
 ## Features
 
@@ -11,6 +17,10 @@ AI-ready disk space analysis and management.
 - 🤖 **AI-Ready** - Built-in AI analysis (OpenAI/DeepSeek/Qwen compatible)
 - 🔌 **MCP Integration** - AI agent automation via MCP protocol
 - 🔒 **Accurate Statistics** - Correctly handles symlinks/junctions to avoid double-counting
+
+<p align="center">
+  <img src="Diskman%20detail.png" alt="Diskman Features" width="600">
+</p>
 
 ## Install
 
